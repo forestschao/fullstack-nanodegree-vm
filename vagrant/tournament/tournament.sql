@@ -6,28 +6,26 @@
 -- You can write comments in this file by starting them with two dashes, like
 -- these lines here.
 DROP DATABASE IF EXISTS tournament;
-DROP VIEW     IF EXISTS Standing;
-DROP TABLE    IF EXISTS Player;
-DROP TABLE    IF EXISTS Match;
 
 CREATE DATABASE tournament;
+\c tournament
 
 CREATE TABLE Player(
-    id	 SERIAL      PRIMARY KEY NOT NULL,
-    name VARCHAR(45)             NOT NULL    
-); 
+    id	 SERIAL PRIMARY KEY NOT NULL,
+    name TEXT               NOT NULL
+);
 
 CREATE TABLE Match(
-    id     SERIAL PRIMARY KEY NOT NULL,
-    winner INT                NOT NULL,
-    loser  INT                NOT NULL
+    id     SERIAL PRIMARY KEY       NOT NULL,
+    winner INT    REFERENCES Player NOT NULL,
+    loser  INT    REFERENCES Player NOT NULL
 );
 
 CREATE VIEW Standing
 AS
-SELECT Player.id, 
-       Player.name, 
-       COALESCE(Win.win, 0) AS win, 
+SELECT Player.id,
+       Player.name,
+       COALESCE(Win.win, 0) AS win,
        COALESCE(Loss.loss, 0) AS loss
 FROM Player
 LEFT JOIN (
@@ -44,7 +42,8 @@ LEFT JOIN (
           FROM Match
           GROUP BY loser
    ) AS Loss
-ON Player.id = Loss.player;
+ON Player.id = Loss.player
+ORDER BY win DESC;
 
 -- Test case
 INSERT INTO Player(name) VALUES('test1');
