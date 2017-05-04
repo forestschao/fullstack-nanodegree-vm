@@ -1,0 +1,37 @@
+<html>
+
+<head>
+</head>
+<body>
+    <div class = 'pane'>
+        <h1>{{catalog.name}}</h1>
+
+        <a href = "{{url_for('newCatalogItem', catalog_id = catalog.id)}}">
+            Create New Item
+        </a>
+
+        {% if items == [] %}
+            <p>There are no items under this catalog</p>
+        {% endif%}
+
+        {% for item in items %}
+            <p>{{item.name}}</p>
+
+            <p>
+                <a href = "{{url_for('editCatalogItem', catalog_id = catalog.id, item_id = item.id)}}">
+                    Edit
+                </a>
+            </p>
+
+            <p>
+                <a href = "{{url_for('deleteCatalogItem', catalog_id = catalog.id, item_id = item.id)}}">
+                    Delete
+                </a>
+            </p>
+
+            <br>
+        {% endfor %}
+    </div>
+</body>
+
+</html>
