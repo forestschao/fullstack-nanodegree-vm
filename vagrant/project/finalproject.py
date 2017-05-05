@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -35,6 +35,7 @@ def newCatalog():
         newCatalog = Catalog(name = request.form['name'])
         session.add(newCatalog)
         session.commit()
+        flash("New catalog is created successfully.")
         return redirect(url_for('showCatalog'))
     else:
         return render_template('newCatalog.html')
@@ -46,6 +47,7 @@ def editCatalog(catalog_id):
     if request.method == 'POST':
         catalog.name = request.form['name'] # Check empty
         session.commit()
+        flash("Update the catalog successfully.")
         return redirect(url_for('showCatalog'))
     else:
         return render_template('editCatalog.html', catalog = catalog)
@@ -58,6 +60,7 @@ def deleteCatalog(catalog_id):
     if request.method == 'POST':
         session.delete(catalog)
         session.commit()
+        flash("Delete the catalog successfully.")
         return redirect(url_for('showCatalog'))
     else:
         return render_template('deleteCatalog.html', catalog = catalog)
@@ -78,6 +81,7 @@ def newCatalogItem(catalog_id):
                               catalog_id = catalog_id)
         session.add(newItem)
         session.commit()
+        flash("New item is created successfully.")
         return redirect(url_for('showCatalogItem', catalog_id = catalog_id))
     else:
         return render_template('newItem.html', catalog_id = catalog_id)
@@ -90,6 +94,7 @@ def editCatalogItem(catalog_id, item_id):
         item.name = request.form['name']
         item.description = request.form['description']
         session.commit()
+        flash("Update the item successfully.")
         return redirect(url_for('showCatalogItem', catalog_id = catalog_id))
     else:
         return render_template('editItem.html', catalog_id = catalog_id, item = item)
@@ -101,9 +106,33 @@ def deleteCatalogItem(catalog_id, item_id):
     if request.method == 'POST':
         session.delete(item)
         session.commit()
+        flash("Delete the item successfully.")
         return redirect(url_for('showCatalogItem', catalog_id = catalog_id))
     else:
         return render_template('deleteItem.html', item = item)
+
+@app.route('/catalog/<int:catalog_id>/items/JSON')
+def catalogItemJSON(catalog_id):
+    """ Show all items in the categories """
+    catalog = session.query(Catalog).filter_by(id = catalog_id).one()
+    items = session.query(CatalogItem).filter_by(
+        catalog_id = catalog_id).all()
+    return jsonify(CatelogItems=[i.serialize for i in items])
+
+@app.route('/catalog/JSON')
+def catalogJSON():
+    serial_catalogs = []
+    catalogs = session.query(Catalog).all()
+
+    for c in catalogs:
+        serial_c = c.serialize
+
+        items = session.query(CatalogItem).filter_by(catalog_id = c.id).all()
+        serial_c['items'] = [i.serialize for i in items]
+        serial_catalogs.append(serial_c)
+
+    return jsonify(Catalog=serial_catalogs)
+
 
 if __name__ == '__main__':
     app.secret_key = 'super_secret_key'

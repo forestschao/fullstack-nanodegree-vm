@@ -18,8 +18,8 @@ class Catalog(Base):
     def serialize(self):
         """ Return object data in easily serializeable format """
         return {
-            'name': self.name,
             'id': self.id,
+            'name': self.name,
         }
 
 
