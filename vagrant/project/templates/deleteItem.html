@@ -1,18 +1,16 @@
+{% extends "catalog_base.html" %}
 
-<html>
+{% block content %}
 
-<head>
-</head>
-
-<body>
-    <h1>Are you sure you want to delete {{item.name}}?</h1>
+<div class="main-panel content">
+    <h2>Delete Item</h2>
+    <p>Are you sure you want to delete {{item.name}}?</p>
 
     <form action="#" method="post">
         <input type="submit" value="Delete">
     </form>
 
-    <a href="#">Cancel</a>
+    <a href="{{url_for('showCatalogItem', catalog_id = item.catalog_id)}}">Cancel</a>
+</div>
 
-</body>
-
-</html>
+{% endblock %}

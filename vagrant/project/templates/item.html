@@ -1,49 +1,16 @@
-<html>
+{% extends "catalog_base.html" %}
 
-<head>
-</head>
-<body>
+{% block content %}
+<div class="main-panel content">
+    <h2>{{item.name}}</h2>
+    <p>{{item.description}}</p>
 
-{% with messages = get_flashed_messages() %}
-    {% if messages %}
-        <ul>
-            {% for message in messages %}
-                <li><strong>{{message}}</strong></li>
-            {% endfor %}
-        </ul>
-    {% endif %}
-{% endwith%}
-
-<div class = 'pane'>
-    <h1>{{catalog.name}}</h1>
-
-    <a href = "{{url_for('newCatalogItem', catalog_id = catalog.id)}}">
-        Create New Item
+    <a href = "{{url_for('editCatalogItem', catalog_id = catalog_id, item_id = item_id)}}">
+        Edit
     </a>
-
-    {% if items == [] %}
-        <p>There are no items under this catalog</p>
-    {% endif%}
-
-    {% for item in items %}
-        <p>{{item.name}}</p>
-
-        <p>
-            <a href = "{{url_for('editCatalogItem', catalog_id = catalog.id, item_id = item.id)}}">
-                Edit
-            </a>
-        </p>
-
-        <p>
-            <a href = "{{url_for('deleteCatalogItem', catalog_id = catalog.id, item_id = item.id)}}">
-                Delete
-            </a>
-        </p>
-
-        <br>
-    {% endfor %}
+    |
+    <a href = "{{url_for('deleteCatalogItem', catalog_id = catalog_id, item_id = item_id)}}">
+        Delete
+    </a>
 </div>
-
-</body>
-
-</html>
+{% endblock %}

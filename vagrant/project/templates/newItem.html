@@ -1,21 +1,41 @@
-<html>
+{% extends "catalog_base.html" %}
 
-<head>
-</head>
+{% block content %}
 
-<body>
-
-    <h1>New Catalog Item</h1>
+<div class="main-panel content">
+    <h2>New Item</h2>
 
     <form action="#" method = 'post'>
-        <p>Name:</p>
+        <label>Title:</label>
+        <br>
         <input type ="text" size="30" name="name">
+        <br>
+        <br>
 
-        <p>Description:</p>
-        <textarea rows="4" cols="50"></textarea>
+        <label>Description:</label>
+        <br>
+        <input type ="text" size="30" name="description">
+        <br>
+        <br>
+
+        <label>Category:</label>
+        <br>
+        <select name="catalog_id">
+            {% for c in catalogs %}
+                {% if c.id == catalog_id %}
+                    <option value="{{c.id}}" selected>{{c.name}}</option>
+                {% else %}
+                    <option value="{{c.id}}">{{c.name}}</option>
+                {% endif %}
+            {% endfor %}
+        </select>
+        <br>
+        <br>
 
         <input type='submit' value='Create'>
+        <a href="{{url_for('showCatalogItem', catalog_id = catalog_id)}}">Cancel</a>
+</div>
     </form>
+</div>
 
-</body>
-</html>
+{% endblock %}
