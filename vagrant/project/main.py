@@ -2,7 +2,9 @@ from flask import Flask, render_template, request, redirect, url_for, flash, jso
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from database_setup import Base, Catalog, CatalogItem
+from database_setup import Base, Catalog, CatalogItem, User
+
+from functools import wraps
 
 from flask import session as login_session
 import random
@@ -27,6 +29,60 @@ Base.metadata.bind = engine
 DBSession = sessionmaker(bind=engine)
 session = DBSession()
 
+def createUser(login_session):
+    newUser = User(name=login_session['username'], email=login_session[
+                   'email'], picture=login_session['picture'])
+    session.add(newUser)
+    session.commit()
+    user = session.query(User).filter_by(email=login_session['email']).one()
+    return user.id
+
+def getUserInfo(user_id):
+    user = session.query(User).filter_by(id=user_id).one()
+    return user
+
+def getUserID(email):
+    try:
+        user = session.query(User).filter_by(email=email).one()
+        return user.id
+    except:
+        return None
+
+def user_signedin(function):
+    @wraps(function)
+    def wrapper(*args, **kwargs):
+        user_id = login_session['user_id']
+        if user_id:
+            return function(*args, **kwargs)
+        else:
+            return render_template("error.html",
+                                    message = "Please login first.")
+    return wrapper
+
+def item_exisited(function):
+    @wraps(function)
+    def wrapper(item_id = None, *args, **kwargs):
+        if item_id:
+            item = session.query(CatalogItem).filter_by(id = item_id).one()
+            if item:
+                return function(item_id = item_id, *args, **kwargs)
+
+        return render_template("error.html",
+                                message = "This item doesn't exist.")
+    return wrapper
+
+def user_own_item(function):
+    @wraps(function)
+    def wrapper(item_id = None, *args, **kwargs):
+        item = session.query(CatalogItem).filter_by(id = item_id).one()
+        user_id = login_session['user_id']
+        if user_id == item.user_id:
+            return function(item_id = item_id, *args, **kwargs)
+        else:
+            return render_template("error.html",
+                                    message = "You don't have auhtorization to change this item")
+    return wrapper
+
 @app.route('/')
 @app.route('/catalog/')
 def showCatalog():
@@ -41,77 +97,73 @@ def showCatalog():
         LIMIT 10
         """)
 
+    if not login_session['state']:
+        # Create anti-forgery state token
+        state = ''.join(random.choice(string.ascii_uppercase + string.digits)
+                        for x in xrange(32))
+        login_session['state'] = state
+
+    if 'user_id' in login_session:
+        user_id = login_session['user_id']
+    else:
+        user_id = None
+
     return render_template('main.html',
                             catalogs = catalogs,
-                            items = items.fetchall())
-
-@app.route('/catalog/new', methods=['GET','POST'])
-def newCatalog():
-    """ Create a new catalog """
-    if request.method == 'POST':
-        newCatalog = Catalog(name = request.form['name'])
-        session.add(newCatalog)
-        session.commit()
-        flash("New catalog is created successfully.")
-        return redirect(url_for('showCatalog'))
-    else:
-        return render_template('newCatalog.html')
-
-@app.route('/catalog/<int:catalog_id>/edit', methods=['GET','POST'])
-def editCatalog(catalog_id):
-    """ Edit the catalog """
-    catalog = session.query(Catalog).filter_by(id = catalog_id).one()
-    if request.method == 'POST':
-        catalog.name = request.form['name'] # Check empty
-        session.commit()
-        flash("Update the catalog successfully.")
-        return redirect(url_for('showCatalog'))
-    else:
-        return render_template('editCatalog.html', catalog = catalog)
-
-
-@app.route('/catalog/<int:catalog_id>/delete', methods=['GET','POST'])
-def deleteCatalog(catalog_id):
-    """ Delete the catalog """
-    catalog = session.query(Catalog).filter_by(id = catalog_id).one()
-    if request.method == 'POST':
-        session.delete(catalog)
-        session.commit()
-        flash("Delete the catalog successfully.")
-        return redirect(url_for('showCatalog'))
-    else:
-        return render_template('deleteCatalog.html', catalog = catalog)
+                            items = items.fetchall(),
+                            STATE = login_session['state'],
+                            user_id = user_id)
 
 @app.route('/catalog/<int:catalog_id>/items')
 def showCatalogItem(catalog_id):
     """ Show all items in the categories """
+    user_id = login_session['user_id']
+
     catalogs = session.query(Catalog).all()
     catalog = session.query(Catalog).filter_by(id = catalog_id).one()
     items = session.query(CatalogItem).filter_by(
         catalog_id = catalog_id).all()
 
     itemHeader = "%s items (%d items)" % (catalog.name, len(items))
+
     return render_template('catalog.html',
                            catalogs = catalogs,
                            catalog = catalog,
                            items = items,
-                           itemHeader = itemHeader)
+                           itemHeader = itemHeader,
+                           user_id = user_id)
 
 @app.route('/catalog/<int:catalog_id>/<int:item_id>')
+@item_exisited
 def showItem(catalog_id, item_id):
     item = session.query(CatalogItem).filter_by(id = item_id).one()
-    return render_template('item.html',
-                            item = item,
-                            catalog_id = catalog_id,
-                            item_id = item_id)
+    user_id = login_session['user_id']
+
+    if user_id == item.user_id:
+        return render_template('item_authorized.html',
+                                item = item,
+                                catalog_id = catalog_id,
+                                item_id = item_id,
+                                user_id = user_id)
+    else:
+        return render_template('item.html',
+                                item = item,
+                                catalog_id = catalog_id,
+                                item_id = item_id,
+                                user_id = user_id)
 
 @app.route('/catalog/<int:catalog_id>/items/new/', methods=['GET','POST'])
+@user_signedin
 def newCatalogItem(catalog_id):
     """ Create a new item under the catalog """
+    user_id = login_session['user_id']
+
     if request.method == 'POST':
+        user_id = login_session['user_id']
         newItem = CatalogItem(name = request.form['name'],
                               catalog_id = catalog_id,
-                              description = request.form['description'])
+                              description = request.form['description'],
+                              user_id = user_id)
         session.add(newItem)
         session.commit()
         flash("New item is created successfully.")
@@ -120,16 +172,26 @@ def newCatalogItem(catalog_id):
         catalogs = session.query(Catalog).all()
         return render_template('newItem.html',
                                 catalogs = catalogs,
-                                catalog_id = catalog_id)
+                                catalog_id = catalog_id,
+                                user_id = user_id)
 
 @app.route('/catalog/<int:catalog_id>/items/<int:item_id>/edit/', methods=['GET','POST'])
+@user_signedin
+@item_exisited
+@user_own_item
 def editCatalogItem(catalog_id, item_id):
     """ Edit a catalog item """
+    user_id = login_session['user_id']
+
     item = session.query(CatalogItem).filter_by(id = item_id).one()
     if request.method == 'POST':
+        user_id = login_session['user_id']
+
         item.name = request.form['name']
         item.description = request.form['description']
         item.catalog_id = request.form['catalog_id']
+        item.user_id = user_id
+
         session.commit()
         flash("Update the item successfully.")
         return redirect(url_for('showCatalogItem', catalog_id = catalog_id))
@@ -138,9 +200,13 @@ def editCatalogItem(catalog_id, item_id):
         return render_template('editItem.html',
                                 catalogs = catalogs,
                                 catalog_id = catalog_id,
-                                item = item)
+                                item = item,
+                                user_id = user_id)
 
 @app.route('/catalog/<int:catalog_id>/items/<int:item_id>/delete', methods=['GET','POST'])
+@user_signedin
+@item_exisited
+@user_own_item
 def deleteCatalogItem(catalog_id, item_id):
     """ Delete a catalog item """
     item = session.query(CatalogItem).filter_by(id = item_id).one()
@@ -150,7 +216,9 @@ def deleteCatalogItem(catalog_id, item_id):
         flash("Delete the item successfully.")
         return redirect(url_for('showCatalogItem', catalog_id = catalog_id))
     else:
-        return render_template('deleteItem.html', item = item)
+        return render_template('deleteItem.html',
+                                item = item,
+                                user_id = user_id)
 
 @app.route('/catalog/<int:catalog_id>/items/JSON')
 def catalogItemJSON(catalog_id):
@@ -175,42 +243,13 @@ def catalogJSON():
     return jsonify(Catalog=serial_catalogs)
 
 
-# Create anti-forgery state token
-@app.route('/login')
-def showLogin():
-    state = ''.join(random.choice(string.ascii_uppercase + string.digits)
-                    for x in xrange(32))
-    login_session['state'] = state
-    return render_template('login.html', STATE=state)
-
-
-def createUser(login_session):
-    newUser = User(name=login_session['username'], email=login_session[
-                   'email'], picture=login_session['picture'])
-    session.add(newUser)
-    session.commit()
-    user = session.query(User).filter_by(email=login_session['email']).one()
-    return user.id
-
-
-def getUserInfo(user_id):
-    user = session.query(User).filter_by(id=user_id).one()
-    return user
-
-
-def getUserID(email):
-    try:
-        user = session.query(User).filter_by(email=email).one()
-        return user.id
-    except:
-        return None
-
 @app.route('/gconnect', methods=['POST'])
 def gconnect():
     # Validate state token
     if request.args.get('state') != login_session['state']:
         response = make_response(json.dumps('Invalid state parameter.'), 401)
         response.headers['Content-Type'] = 'application/json'
+        login_session['state'] = None
         return response
 
     # Obtain authorization code
@@ -304,9 +343,9 @@ def gdisconnect():
     print login_session['username']
     if access_token is None:
         print 'Access Token is None'
-        response = make_response(json.dumps('Current user not connected.'), 401)
-        response.headers['Content-Type'] = 'application/json'
-        return response
+        return render_template("error.html",
+                                message = "Current user not connected.")
+
     url = 'https://accounts.google.com/o/oauth2/revoke?token=%s' % login_session['access_token']
     h = httplib2.Http()
     result = h.request(url, 'GET')[0]
@@ -318,14 +357,14 @@ def gdisconnect():
         del login_session['username']
         del login_session['email']
         del login_session['picture']
-        response = make_response(json.dumps('Successfully disconnected.'), 200)
-        response.headers['Content-Type'] = 'application/json'
-        return response
-    else:
 
-        response = make_response(json.dumps('Failed to revoke token for given user.', 400))
-        response.headers['Content-Type'] = 'application/json'
-        return response
+        login_session['user_id'] = None
+        # response = make_response(json.dumps('Successfully disconnected.'), 200)
+        # response.headers['Content-Type'] = 'application/json'
+        return redirect(url_for('showCatalog'))
+    else:
+        return render_template("error.html",
+                                message = "Failed to revoke token for given user.")
 
 if __name__ == '__main__':
     app.secret_key = 'super_secret_key'

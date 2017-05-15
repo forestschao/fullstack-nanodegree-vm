@@ -2,11 +2,11 @@
 
 {% block content %}
 
-<div class="content">
-    <a href = "{{url_for('newCatalog')}}">
+<!-- <div class="content">
+    <a href = "#">
         Create New Catalog
     </a>
-</div>
+</div> -->
 
 <div class="main-panel content">
     {% if catalogs == [] %}
@@ -19,10 +19,6 @@
             <li>
                 <a href="{{url_for('showCatalogItem', catalog_id = c.id)}}">{{c.name}}</a>
             </li>
-
-    <!--             <p><a href = "{{url_for('editCatalog', catalog_id = c.id)}}">Edit</a></p>
-
-                <p><a href = "{{url_for('deleteCatalog', catalog_id = c.id)}}">Delete</a></p> -->
             {% endfor %}
         </ul>
     </div>
@@ -34,7 +30,6 @@
             <li>
                 <a href = "{{url_for('showItem', catalog_id = item.catalog_id, item_id = item.id)}}">
                     {{item.name}}
-
                 </a>
                 <label class="item-catalog">({{item.catalog_name}})</label>
             </li>

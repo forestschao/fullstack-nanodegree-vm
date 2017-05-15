@@ -19,9 +19,12 @@
     </div>
 
     <div class="right-sub-panel">
-        <a href = "{{url_for('newCatalogItem', catalog_id = catalog.id)}}">
-            Add Item
-        </a>
+        {% if user_id %}
+            <a href = "{{url_for('newCatalogItem', catalog_id = catalog.id)}}">
+                Add Item
+            </a>
+        {% endif %}
+
         <h2 class="list-header">{{itemHeader}}</h2>
 
         {% if items == [] %}

@@ -15,3 +15,22 @@ The tournament.py provides the necessary basic operations.
   |-- tournament_test.py
   |—- tournament.py
   |—- tournament.sql
+
+2. Catalog
+=============
+This is a small website which supports create, read, update and delete items as well as oath 2.0 authorization.
+
+What's included:
+All the related code is under the project.
+The folder templates contains the html pages of this project.
+The folder static contians the style sheet of this project.
+database_setup.py contains the database sql.
+main.py is the backend server logic.
+
+How to start:
+1. Install Vagrant and VirtualBox
+2. Clone the fullstack-nanodegree-vm
+3. Launch the Vagrant VM (vagrant up)
+4. Run the application within the VM (python /vagrant/project/main.py)
+5. Access the application by visiting http://localhost:8000 locally
+

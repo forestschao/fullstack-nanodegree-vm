@@ -6,11 +6,20 @@ body {
     background-color: #032040;
 }
 
-#signInButton {
+#signin-div {
     float: right;
     display: inline-block;
     margin-top: 5px;
-    margin-right: -10px;
+}
+
+.signin-button {
+    width: 100px;
+    height: 30px;
+    background-color: #4285f4;
+    color: white;
+    border-style: none;
+    border-radius: 5px;
+    font-size: initial;
 }
 
 .content {

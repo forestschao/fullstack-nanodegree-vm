@@ -1,0 +1,11 @@
+{% extends "catalog_base.html" %}
+
+{% block content %}
+<div class="main-panel content">
+    <p>{{message}}</p>
+
+    <a href="{{url_for('showCatalog')}}">
+        Return
+    </a>
+</div>
+{% endblock %}
