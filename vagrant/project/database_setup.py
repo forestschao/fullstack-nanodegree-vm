@@ -2,12 +2,13 @@ import os
 import sys
 from sqlalchemy import Column, ForeignKey, Integer, String, DateTime
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, backref
 from sqlalchemy import create_engine
 
 import datetime
 
 Base = declarative_base()
+
 
 class User(Base):
     __tablename__ = 'user'
@@ -25,6 +26,7 @@ class User(Base):
             'email': self.email,
             'picture': self.picture,
         }
+
 
 class Catalog(Base):
     __tablename__ = 'catalog'
@@ -52,7 +54,9 @@ class CatalogItem(Base):
     description = Column(String(250))
 
     catalog_id = Column(Integer, ForeignKey('catalog.id'))
-    catalog = relationship(Catalog)
+    catalog = relationship(Catalog,
+                           backref=backref('CatalogItem',
+                                           cascade='all, delete'))
 
     user_id = Column(Integer, ForeignKey('user.id'))
     user = relationship(User)
